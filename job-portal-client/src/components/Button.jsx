@@ -3,7 +3,7 @@ const Button = ({ onClickHandler, value, title }) => {
     <button
       onClick={onClickHandler}
       value={value}
-      className={`px-4 py-1 border text-base hover:bg-blue hover:text-white`}
+      className="btn-outline text-xs sm:text-sm px-4 py-2.5 rounded-lg transition-all duration-200"
     >
       {title}
     </button>

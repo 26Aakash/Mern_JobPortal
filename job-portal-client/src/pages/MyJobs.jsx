@@ -1,204 +1,192 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AuthContext } from "../context/AuthProvider";
+import { FiSearch } from "react-icons/fi";
 
-const MyJobs = () => {
-  const { user } = useContext(AuthContext);
-  const [jobs, setJobs] = useState([]);
-  const [searchText, setSearchText] = useState("");
-  // console.log(searchText)
-  const [isLoading, setIsLoading] = useState(true);
+import StatusBadge from "../components/StatusBadge";
+import api from "../services/api";
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
-
-  // console.log(control)
-  useEffect(() => {
-    setIsLoading(true);
-    fetch(`https://mern-jobportal-ckfs.onrender.com/myJobs/${user?.email}`)
-      .then((res) => res.json())
-      .then((data) => {
-        // console.log(data);
-        setJobs(data);
-        setIsLoading(false);
-      });
-  }, [searchText, user]);
-
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentJobs = jobs.slice(indexOfFirstItem, indexOfLastItem);
-
-  // search functionality
-  const handleSearch = () => {
-    const filter = jobs.filter(
-      (job) =>
-        job.jobTitle.toLowerCase().indexOf(searchText.toLowerCase()) !== -1
-    );
-    // console.log(filter);
-    setJobs(filter);
-    setIsLoading(false);
-  };
-
-  // pagination previous and next
-  const nextPage = () => {
-    if (indexOfLastItem < jobs.length) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  // delete a books
-  const handleDelete = (id) => {
-    // console.log(id)
-    fetch(`https://mern-jobportal-ckfs.onrender.com/job/${id}`, {
-      method: "DELETE",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        // console.log(data);
-        // setAllBooks(data);
-        if (data.acknowledged === true) {
-          alert("Job Deleted Successfully!!");
-          // Filter out the deleted job from the current list of jobs
-          const updatedJobs = jobs.filter((job) => job._id !== id);
-          // Update the jobs state with the updated list
-          setJobs(updatedJobs);
-        }
-      });
-  };
-
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  console.log(currentJobs);
-  //
+function StatCard({ label, value }) {
   return (
-    <div className="max-w-screen-2xl container mx-auto xl:px-24 px-4">
-      <div className="my-jobs-container">
-        <h1 className="text-center p-4 ">ALL My Jobs</h1>
-        <div className="search-box p-2 text-center mb-2">
-          <input
-            onChange={(e) => setSearchText(e.target.value)}
-            type="text"
-            className="py-2 pl-3 border focus:outline-none lg:w-6/12 mb-4 w-full"
-          />
-          <button
-            onClick={handleSearch}
-            className="bg-blue text-white font-semibold px-8 py-2 rounded-sm mb-4"
-          >
-            Search
-          </button>
+    <div className="card-elevated rounded-3xl p-5">
+      <p className="text-sm text-slate-500">{label}</p>
+      <p className="mt-2 text-3xl font-bold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+export default function MyJobs() {
+  const [applications, setApplications] = useState([]);
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadApplications() {
+      try {
+        const response = await api.get("/applications/user");
+        setApplications(response.data);
+      } catch (apiError) {
+        setError(
+          apiError.response?.data?.message ||
+            "Unable to load your applications right now."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadApplications();
+  }, []);
+
+  const filteredApplications = useMemo(() => {
+    return applications.filter((application) => {
+      const haystack = `${application.job?.companyName || ""} ${application.job?.role || ""}`.toLowerCase();
+      const matchesSearch =
+        !filters.search || haystack.includes(filters.search.toLowerCase());
+      const matchesStatus =
+        !filters.status || application.status === filters.status;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [applications, filters]);
+
+  const stats = useMemo(
+    () => ({
+      total: applications.length,
+      applied: applications.filter((item) => item.status === "Applied").length,
+      reviewed: applications.filter((item) => item.status === "Reviewed").length,
+      selected: applications.filter((item) => item.status === "Selected").length,
+    }),
+    [applications]
+  );
+
+  return (
+    <div className="page-shell">
+      <div className="container-wide py-10 lg:py-14">
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">
+              Dashboard
+            </p>
+            <h1 className="mt-2 text-3xl font-bold text-slate-950 lg:text-4xl">
+              Your job applications
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
+              Review every role you applied for and track the current selection status.
+            </p>
+          </div>
+
+          <Link to="/jobs" className="btn-primary">
+            Browse jobs
+          </Link>
         </div>
 
-        {/* table */}
-        <section className="py-1 bg-blueGray-50">
-          <div className="w-full xl:w-8/12 mb-12 xl:mb-0 px-4 mx-auto mt-5">
-            <div className="relative flex flex-col min-w-0 break-words bg-white w-full mb-6 shadow-lg rounded ">
-              <div className="rounded-t mb-0 px-4 py-3 border-0">
-                <div className="flex md:flex-row gap-4 flex-col items-center">
-                  <div className="relative w-full px-4 max-w-full flex-grow flex-1">
-                    <h3 className="font-semibold text-base text-blueGray-700">
-                      All Jobs
-                    </h3>
-                  </div>
-                  <div className="relative w-full px-4 max-w-full flex-grow flex-1 text-right">
-                    <Link
-                      to="/post-job"
-                      className="bg-indigo-500 text-white active:bg-indigo-600 text-xs font-bold uppercase px-3 py-1 rounded outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
-                    >
-                      Post A New Job
-                    </Link>
-                  </div>
-                </div>
-              </div>
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Total applications" value={stats.total} />
+          <StatCard label="Applied" value={stats.applied} />
+          <StatCard label="Reviewed" value={stats.reviewed} />
+          <StatCard label="Selected" value={stats.selected} />
+        </div>
 
-              <div className="block w-full overflow-x-auto">
-                <table className="items-center bg-transparent w-full border-collapse ">
-                  <thead>
-                    <tr>
-                      <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        No.
-                      </th>
-                      <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        Title
-                      </th>
-                      <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        Company Name
-                      </th>
-                      <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        salary
-                      </th>
-                      <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        Edit
-                      </th>
-                      <th className="px-6 bg-blueGray-50 text-blueGray-500 align-middle border border-solid border-blueGray-100 py-3 text-xs uppercase border-l-0 border-r-0 whitespace-nowrap font-semibold text-left">
-                        Delete
-                      </th>
-                    </tr>
-                  </thead>
+        <section className="card-elevated rounded-[28px] p-5 lg:p-7">
+          <div className="grid gap-4 lg:grid-cols-[1.5fr,1fr]">
+            <label className="relative block">
+              <FiSearch className="pointer-events-none absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+              <input
+                className="input-field pl-11"
+                value={filters.search}
+                onChange={(event) =>
+                  setFilters((current) => ({
+                    ...current,
+                    search: event.target.value,
+                  }))
+                }
+                placeholder="Search company or role"
+              />
+            </label>
 
-                  {/* set loding here */}
-                  {isLoading ? (
-                    <div className="flex items-center justify-center h-20">
-                      <p>loading......</p>
-                    </div>
-                  ) : (
-                    <tbody>
-                      {currentJobs.map((job, index) => (
-                        <tr key={index}>
-                          <th className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 text-left text-blueGray-700 ">
-                            {index + 1}
-                          </th>
-                          <td className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4 ">
-                            {job.jobTitle}
-                          </td>
-                          <td className="border-t-0 px-6 align-center border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
-                            {job.companyName}
-                          </td>
-                          <td className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
-                            ${job.minPrice} - ${job.maxPrice}k
-                          </td>
-                          <td className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
-                            <button>
-                              <Link to={`/edit-job/${job?._id}`}>Edit</Link>
-                            </button>
-                          </td>
-                          <td className="border-t-0 px-6 align-middle border-l-0 border-r-0 text-xs whitespace-nowrap p-4">
-                            <button
-                              className="bg-red-700 py-2 px-6 text-white rounded-sm"
-                              onClick={() => handleDelete(job._id)}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  )}
-                </table>
-              </div>
-            </div>
+            <select
+              className="input-field"
+              value={filters.status}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  status: event.target.value,
+                }))
+              }
+            >
+              <option value="">All statuses</option>
+              <option value="Applied">Applied</option>
+              <option value="Reviewed">Reviewed</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Selected">Selected</option>
+            </select>
           </div>
-          {/* pagination */}
-          <div className="flex justify-center text-black space-x-8">
-            {currentPage > 1 && (
-              <button onClick={prevPage} className="hover:underline">
-                Previous
-              </button>
-            )}
-            {indexOfLastItem < jobs.length && (
-              <button onClick={nextPage} className="hover:underline">
-                Next
-              </button>
+
+          {error && (
+            <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+
+          <div className="mt-6 grid gap-4">
+            {loading ? (
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
+                Loading applications...
+              </div>
+            ) : filteredApplications.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  No applications found
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Start by applying to a role from the jobs page.
+                </p>
+              </div>
+            ) : (
+              filteredApplications.map((application) => (
+                <article
+                  key={application._id}
+                  className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h2 className="text-xl font-semibold text-slate-950">
+                          {application.job?.role}
+                        </h2>
+                        <StatusBadge status={application.status} />
+                      </div>
+                      <p className="text-base font-medium text-slate-700">
+                        {application.job?.companyName}
+                      </p>
+                      <div className="flex flex-wrap gap-4 text-sm text-slate-500">
+                        <span>{application.job?.location || "Remote"}</span>
+                        <span>{application.job?.salary || "Salary not listed"}</span>
+                        <span>
+                          Applied {new Date(application.appliedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <Link to={`/applications/${application._id}`} className="btn-outline">
+                        View
+                      </Link>
+                      <Link to={`/jobs/${application.jobId}`} className="btn-primary">
+                        Job details
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))
             )}
           </div>
         </section>
       </div>
     </div>
   );
-};
-
-export default MyJobs;
+}

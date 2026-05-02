@@ -1,155 +1,167 @@
-/* eslint-disable react/no-unknown-property */
-import React, { useContext, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { FaBarsStaggered, FaXmark } from "react-icons/fa6";
-import { AuthContext } from "../context/AuthProvider";
+import { FiUser } from "react-icons/fi";
 
-const Navbar = () => {
+import useAuth from "../hooks/useAuth";
+
+export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, logOut } = useContext(AuthContext);
-  console.log(user)
+  const { isAuthenticated, logOut, user } = useAuth();
 
-  
-  const handleLogout = () => {
-    logOut()
-      .then(() => {
-        // Sign-out successful.
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
+  const navItems = useMemo(() => {
+    const items = [{ path: "/", title: "Home" }];
 
-  // menu toggle btn
-  const handleMenuToggler = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-  const navItems = [
-    { path: "/", title: "Start a search" },
-    { path: "/my-job", title: "My Jobs" },
-    { path: "/salary", title: "Salary estimate" },
-    { path: "/post-job", title: "Post A Job" },
-  ];
+    if (isAuthenticated) {
+      items.push({ path: "/jobs", title: "Jobs" });
+      items.push({ path: "/dashboard", title: "My Applications" });
+
+      if (user?.role === "admin") {
+        items.push({ path: "/admin", title: "Admin" });
+      }
+    }
+
+    return items;
+  }, [isAuthenticated, user?.role]);
+
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "U";
+
   return (
-    <header className="max-w-screen-2xl container mx-auto xl:px-24 px-4">
-      <nav className="flex justify-between items-center py-6">
-        <a href="/" className="flex items-center gap-2 text-2xl">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="29"
-            height="30"
-            viewBox="0 0 29 30"
-            fill="none"
-          >
-            <circle
-              cx="12.0143"
-              cy="12.5143"
-              r="12.0143"
-              fill="#3575E2"
-              fillOpacity="0.4"
-            />
-            <circle cx="16.9857" cy="17.4857" r="12.0143" fill="#3575E2" />
-          </svg>
-          <span>JobPortal</span>
-        </a>
+    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 backdrop-blur">
+      <nav className="container-wide flex items-center justify-between py-4">
+        <Link to="/" className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 via-blue to-indigo-600 text-white shadow-lg shadow-blue/25">
+            CT
+          </div>
+          <div>
+            <p className="text-base font-bold text-slate-900">Job Tracker</p>
+            <p className="text-xs text-slate-500">Keep your search organized</p>
+          </div>
+        </Link>
 
-        {/* nav items */}
-        <ul className="hidden md:flex gap-12">
-          {navItems.map(({ path, title }) => (
-            <li key={path} className="text-base text-primary">
-              <NavLink
-                to={path}
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                {title}
-              </NavLink>
-            </li>
+        <div className="hidden md:flex items-center gap-7">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `text-sm font-medium transition-colors ${
+                  isActive ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
+                }`
+              }
+            >
+              {item.title}
+            </NavLink>
           ))}
-        </ul>
+        </div>
 
-        {/* sign up signout btn */}
-        <div className="text-base text-primary font-medium space-x-5 hidden lg:block">
-          {user ? (
+        <div className="hidden md:flex items-center gap-3">
+          {isAuthenticated ? (
             <>
-              <div className="flex gap-4 items-center">
-                <div class="flex -space-x-2 overflow-hidden">
-                  {
-                    user?.photoURL ? <> <img
-                    className="inline-block h-10 w-10 rounded-full ring-2 ring-white"
-                    src={user?.photoURL}
-                    alt=""
-                  /></> : <> <img
-                    className="inline-block h-10 w-10 rounded-full ring-2 ring-white"
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                    alt=""
-                  /></>
-                  }
-                 
-                </div>
-                <button onClick={handleLogout} className="py-2 px-5 border rounded hover:bg-blue hover:text-white">Log out</button>
-              </div>
+              <Link
+                to="/profile"
+                className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 transition hover:border-slate-300 hover:shadow-sm"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+                  {initials}
+                </span>
+                <span className="text-left">
+                  <span className="block text-sm font-semibold text-slate-900">
+                    {user?.name}
+                  </span>
+                  <span className="block text-xs uppercase tracking-[0.15em] text-slate-500">
+                    {user?.role}
+                  </span>
+                </span>
+              </Link>
+              <button onClick={logOut} className="btn-outline">
+                Log out
+              </button>
             </>
           ) : (
             <>
-              {" "}
-              <Link to="/login" className="py-2 px-5 border rounded">
+              <Link to="/login" className="btn-ghost">
                 Log in
               </Link>
-              <Link
-                to="/sign-up"
-                className="bg-blue py-2 px-5 text-white rounded"
-              >
-                Sign up
+              <Link to="/sign-up" className="btn-primary">
+                Get started
               </Link>
             </>
           )}
         </div>
 
-        {/* mobile menu */}
-        <div className="md:hidden block">
-          <button onClick={handleMenuToggler}>
-            {isMenuOpen ? (
-              <>
-                <FaXmark className="w-5 h-5 text-primary/75" />
-              </>
-            ) : (
-              <>
-                <FaBarsStaggered className="w-5 h-5 text-primary/75" />
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 md:hidden"
+          onClick={() => setIsMenuOpen((current) => !current)}
+        >
+          {isMenuOpen ? <FaXmark /> : <FaBarsStaggered />}
+        </button>
       </nav>
 
-      {/* mobile menu items */}
-      <div
-        className={`px-4 bg-black py-5 rounded-sm ${
-          isMenuOpen ? "" : "hidden"
-        }`}
-      >
-        <ul>
-          {navItems.map(({ path, title }) => (
-            <li
-              key={path}
-              className="text-base text-white first:text-white py-1"
-            >
+      {isMenuOpen && (
+        <div className="border-t border-slate-200 bg-white md:hidden">
+          <div className="container-wide space-y-3 py-4">
+            {navItems.map((item) => (
               <NavLink
-                onClick={handleMenuToggler}
-                to={path}
-                className={({ isActive }) => (isActive ? "active" : "")}
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsMenuOpen(false)}
+                className="block rounded-xl px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
               >
-                {title}
+                {item.title}
               </NavLink>
-            </li>
-          ))}
-
-          <li className="text-white py-1">
-            <Link to="login">Log in</Link>
-          </li>
-        </ul>
-      </div>
+            ))}
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/profile"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white">
+                    <FiUser className="h-4 w-4" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-900">
+                      {user?.name}
+                    </span>
+                    <span className="block text-xs uppercase tracking-[0.15em] text-slate-500">
+                      {user?.role}
+                    </span>
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logOut();
+                    setIsMenuOpen(false);
+                  }}
+                  className="btn-outline w-full justify-center"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <div className="flex gap-3">
+                <Link to="/login" className="btn-outline flex-1 justify-center">
+                  Log in
+                </Link>
+                <Link to="/sign-up" className="btn-primary flex-1 justify-center">
+                  Sign up
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
-};
-
-export default Navbar;
+}

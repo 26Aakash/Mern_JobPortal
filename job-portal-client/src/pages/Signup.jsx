@@ -1,97 +1,159 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
-import { AuthContext } from "../context/AuthProvider";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
 
-const SignUp = () => {
-  const [errorMessage, setErrorMessage] = useState("");
-  const { createUser } = useContext(AuthContext);
+import useAuth from "../hooks/useAuth";
+
+export default function Signup() {
   const navigate = useNavigate();
+  const { register: signUp } = useAuth();
+  const [apiError, setApiError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSignUp = async (event) => {
-    event.preventDefault();
-    const form = event.target;
-    const email = form.email.value;
-    const password = form.password.value;
-    const confirmPassword = form.confirmPassword.value;
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      name: "",
+      email: "",
+      role: "user",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-    // Simple validation for password match
-    if (password !== confirmPassword) {
-      setErrorMessage("Passwords do not match");
-      return;
-    }
+  const onSubmit = async ({ confirmPassword, ...values }) => {
+    setSubmitting(true);
+    setApiError("");
 
     try {
-      // Call createUser function from authentication provider
-      await createUser(email, password);
-      // After successful signup, navigate the user to another page, for example, the login page
-      navigate("/login");
+      const nextUser = await signUp(values);
+      navigate(nextUser.role === "admin" ? "/admin" : "/jobs");
     } catch (error) {
-      console.error("Error signing up:", error.message);
-      setErrorMessage(error.message);
+      setApiError(
+        error.response?.data?.message || "Unable to create your account."
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="h-screen mx-auto container flex items-center justify-center">
-      <div className="w-full max-w-xs mx-auto">
-        <form
-          onSubmit={handleSignUp}
-          className="bg-white shadow-md rounded px-8 pt-8 pb-8 mb-4"
-        >
-          <h3 className="text-xl font-semibold mb-4">Sign Up</h3>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Email Address
+    <div className="page-shell flex items-center justify-center px-4 py-12">
+      <div className="glass-card w-full max-w-md rounded-[28px] p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">
+          Create account
+        </p>
+        <h1 className="mt-3 text-3xl font-bold text-slate-950">Start tracking</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Set up your account and keep your search pipeline in one place.
+        </p>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-800">
+              Full name
             </label>
             <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="email"
-              type="email"
-              placeholder="name@email.com"
+              className="input-field"
+              {...register("name", { required: "Name is required" })}
+              placeholder="Aakash Kumar"
             />
+            {errors.name && (
+              <p className="mt-2 text-xs text-rose-600">{errors.name.message}</p>
+            )}
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-800">
+              Email
+            </label>
+            <input
+              className="input-field"
+              type="email"
+              {...register("email", { required: "Email is required" })}
+              placeholder="you@example.com"
+            />
+            {errors.email && (
+              <p className="mt-2 text-xs text-rose-600">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-800">
+              Role
+            </label>
+            <select className="input-field" {...register("role")}>
+              <option value="user">User</option>
+              <option value="recruiter">Recruiter</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-800">
               Password
             </label>
             <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-              id="password"
+              className="input-field"
               type="password"
-              placeholder="******************"
+              {...register("password", {
+                required: "Password is required",
+                minLength: {
+                  value: 6,
+                  message: "Password must be at least 6 characters long",
+                },
+              })}
+              placeholder="At least 6 characters"
             />
-          </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Confirm Password
-            </label>
-            <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-              id="confirmPassword"
-              type="password"
-              placeholder="******************"
-            />
-            {/* Show error message */}
-            {errorMessage && (
-              <p className="text-red-500 text-xs italic">{errorMessage}</p>
+            {errors.password && (
+              <p className="mt-2 text-xs text-rose-600">
+                {errors.password.message}
+              </p>
             )}
           </div>
-          <div className="flex items-center justify-center">
-            <button
-              className="bg-violet-500 hover:bg-violet-600 active:bg-violet-700 text-white font-bold py-1.5 px-10 rounded focus:outline-none focus:ring focus:ring-violet-300 ..."
-              type="submit"
-            >
-              Sign Up
-            </button>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-800">
+              Confirm password
+            </label>
+            <input
+              className="input-field"
+              type="password"
+              {...register("confirmPassword", {
+                validate: (value) =>
+                  value === watch("password") || "Passwords do not match",
+              })}
+              placeholder="Repeat your password"
+            />
+            {errors.confirmPassword && (
+              <p className="mt-2 text-xs text-rose-600">
+                {errors.confirmPassword.message}
+              </p>
+            )}
           </div>
+
+          {apiError && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {apiError}
+            </div>
+          )}
+
+          <button type="submit" disabled={submitting} className="btn-primary w-full justify-center">
+            {submitting ? "Creating account..." : "Create account"}
+          </button>
         </form>
-        <p className="text-center text-gray-500 text-xs">
-          &copy;2023 JobPortal. All rights reserved.
+
+        <p className="mt-6 text-sm text-slate-600">
+          Already registered?{" "}
+          <Link to="/login" className="font-semibold text-sky-700 hover:text-sky-800">
+            Log in
+          </Link>
         </p>
       </div>
     </div>
   );
-};
-
-export default SignUp;
+}

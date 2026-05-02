@@ -1,91 +1,108 @@
-import React, { useContext, useState } from "react";
-import { AuthContext } from "../context/AuthProvider";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-const Login = () => {
-  const [errorMessage, setErrorMessage] = useState("");
-  const { login } = useContext(AuthContext);
+import useAuth from "../hooks/useAuth";
 
-  const location = useLocation();
+export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const [apiError, setApiError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const from = location.state?.from?.pathname;
 
-  const from = location.state?.from?.pathname || "/";
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
-    const form = event.target;
-    const email = form.email.value;
-    const password = form.password.value;
+  const onSubmit = async (values) => {
+    setSubmitting(true);
+    setApiError("");
+
     try {
-      const result = await login(email, password);
-      const user = result.user;
-      alert("Login successful!");
-      navigate(from, { replace: true });
+      const nextUser = await login(values);
+      navigate(from || (nextUser.role === "admin" ? "/admin" : "/jobs"), {
+        replace: true,
+      });
     } catch (error) {
-      setErrorMessage("Please provide valid email & password!");
+      setApiError(
+        error.response?.data?.message || "Unable to sign you in right now."
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="h-screen mx-auto container flex items-center justify-center">
-      <div className="w-full max-w-xs mx-auto">
-        <form
-          onSubmit={handleLogin}
-          className="bg-white shadow-md rounded px-8 pt-8 pb-8 mb-4"
-        >
-          <h3 className="text-xl font-semibold mb-4">Please Login!</h3>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Email Address
+    <div className="page-shell flex items-center justify-center px-4 py-12">
+      <div className="glass-card w-full max-w-md rounded-[28px] p-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">
+          Welcome back
+        </p>
+        <h1 className="mt-3 text-3xl font-bold text-slate-950">Log in</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Continue managing your job applications.
+        </p>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-800">
+              Email
             </label>
             <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              id="email"
+              className="input-field"
+              {...register("email", { required: "Email is required" })}
               type="email"
-              placeholder="name@email.com"
+              placeholder="you@example.com"
             />
+            {errors.email && (
+              <p className="mt-2 text-xs text-rose-600">{errors.email.message}</p>
+            )}
           </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-800">
               Password
             </label>
             <input
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-              id="password"
+              className="input-field"
+              {...register("password", { required: "Password is required" })}
               type="password"
-              placeholder="******************"
+              placeholder="Enter your password"
             />
-
-            {/* show errors */}
-            {errorMessage && (
-              <p className="text-red-500 text-xs italic">
-                Please provide a valid email and password.
+            {errors.password && (
+              <p className="mt-2 text-xs text-rose-600">
+                {errors.password.message}
               </p>
             )}
           </div>
-          <div className="flex items-center justify-center mb-6 ">
-            <input
-              className="bg-violet-500 hover:bg-violet-600 active:bg-violet-700 text-white font-bold py-1.5 px-10 rounded focus:outline-none focus:ring focus:ring-violet-300 ..."
-              type="submit"
-              value="Sign in"
-            />
-          </div>
-          <div className="flex items-center justify-center ml-2">
-            Or
-            <a
-              href="/sign-up"
-              className="ml-2 px-2 py-2 bg-violet-500 hover:bg-violet-600 active:bg-violet-700 text-white font-bold  rounded focus:outline-none focus:ring focus:ring-violet-300 ..."
-            >
-              Sign Up
-            </a>
-          </div>
+
+          {apiError && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {apiError}
+            </div>
+          )}
+
+          <button type="submit" disabled={submitting} className="btn-primary w-full justify-center">
+            {submitting ? "Signing in..." : "Log in"}
+          </button>
         </form>
-        <p className="text-center text-gray-500 text-xs">
-          &copy;2023 JobPortal. All rights reserved.
+
+        <p className="mt-6 text-sm text-slate-600">
+          Need an account?{" "}
+          <Link to="/sign-up" className="font-semibold text-sky-700 hover:text-sky-800">
+            Sign up
+          </Link>
         </p>
       </div>
     </div>
   );
-};
-
-export default Login;
+}
