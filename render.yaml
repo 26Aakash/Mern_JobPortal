@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: job-portal-api
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: cd job-portal-server && npm install
+    startCommand: cd job-portal-server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        fromDatabase:
+          name: mongodb
+          property: connectionString
+      - key: MONGO_DB_NAME
+        value: careerTracker
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_URLS
+        sync: false
+      - key: PORT
+        value: 10000
+
+databases:
+  - name: mongodb
+    databaseName: careerTracker
+    region: oregon
+    plan: free
