@@ -67,12 +67,3 @@ Contributions are welcome! If you'd like to contribute to the MERN Stack Job Por
 4. Commit your changes (`git commit -am 'Add new feature'`).
 5. Push to the branch (`git push origin feature/my-feature`).
 6. Create a new Pull Request.
-
-## Contact
-
-Have questions or suggestions? Feel free to contact us at [xp27anujkumar@gmail.com](mailto:xp27anujkumar.com).
-```
-
-You can copy and paste this code directly into your README.md file on GitHub.
-Make sure to replace placeholders like `yourusername`, `your@gmail.com`, and environment variable placeholders with actual values in your project.
-This README provides comprehensive information about your project, including features, installation instructions, contribution guidelines, licensing, and contact information.
